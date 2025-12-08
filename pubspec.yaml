@@ -1,0 +1,44 @@
+name: smartapp_emsi
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.4 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+ 
+  # UI Components
+  cupertino_icons: ^1.0.6
+ 
+  # Image Picker for selecting images from gallery/camera
+  image_picker: ^1.2.1
+ 
+  # TensorFlow Lite for running ML models - UPDATED VERSION
+  tflite_flutter: ^0.11.0
+ 
+  # Image processing library
+  image: ^4.1.7
+
+  # RAG Chatbot Dependencies
+  http: ^1.2.1
+  syncfusion_flutter_pdf: ^25.1.35
+  flutter_markdown: ^0.6.22
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+ 
+  # Add your assets here
+  assets:
+    - assets/images/emsi.png
+    - assets/images/image_cv.jpg
+    - assets/models/fruit_model.tflite
+    - assets/models/labels.txt
+    - assets/docs/
