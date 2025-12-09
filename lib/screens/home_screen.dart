@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -10,6 +11,22 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
+    // Retrieve arguments passed from Login Page
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final email = args?['email'] as String? ?? 'user@example.com';
+    
+    // Derive name from email (e.g. radia.omalek -> Radia Omalek)
+    String name = 'User';
+    if (email.contains('@')) {
+      final localPart = email.split('@')[0];
+      // Split by dot or underscore if present
+      final parts = localPart.split(RegExp(r'[._]'));
+      name = parts.map((part) {
+        if (part.isEmpty) return '';
+        return part[0].toUpperCase() + part.substring(1);
+      }).join(' ');
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home Page'),
@@ -20,29 +37,29 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
+            DrawerHeader(
+              decoration: const BoxDecoration(
                 color: Colors.teal,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: AssetImage('assets/images/image_cv.jpg'), // Replace with your asset path
+                  const CircleAvatar(
+                    radius: 36,
+                    backgroundImage: AssetImage('assets/images/img_pp.jpeg'),
                   ),
-                  
+                  const SizedBox(height: 8),
                   Text(
-                    'Mohammed Bousmah',
-                    style: TextStyle(
+                    name,
+                    style: const TextStyle(
                       color: Colors.white,
-                      
                       fontWeight: FontWeight.bold,
+                      fontSize: 18,
                     ),
                   ),
                   Text(
-                    'john.doe@example.com',
-                    style: TextStyle(
+                    email,
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
                     ),
@@ -60,7 +77,7 @@ class _HomePageState extends State<HomePage> {
             ),
 
             ListTile(
-              leading: const Icon(Icons.home),
+              leading: const Icon(Icons.chat),
               title: const Text('Emsi CHATBOT'),
               onTap: () {
                 Navigator.pop(context);
@@ -91,15 +108,16 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 // Handle logout action
                 Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/login');
               },
             ),
           ],
         ),
       ),
-      body: const Center(
+      body: Center(
         child: Text(
-          'Welcome to the Home Page!',
-          style: TextStyle(fontSize: 24),
+          'Welcome $name!',
+          style: const TextStyle(fontSize: 24),
         ),
       ),
     );

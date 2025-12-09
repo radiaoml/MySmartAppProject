@@ -38,7 +38,7 @@ flutter:
   # Add your assets here
   assets:
     - assets/images/emsi.png
-    - assets/images/image_cv.jpg
+    - assets/images/img_pp.jpeg
     - assets/models/fruit_model.tflite
     - assets/models/labels.txt
     - assets/docs/

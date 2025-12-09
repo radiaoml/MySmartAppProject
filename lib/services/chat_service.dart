@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
@@ -69,22 +70,19 @@ class ChatService {
     if (!_isInitialized) await initialize();
 
     // 1. Construct Search Query
-    // Combine current question with previous user message for context (handle "and?" or "is that all?")
     String searchQuery = question;
     if (history.isNotEmpty) {
       final lastUserMsg = history.reversed.firstWhere((m) => m['role'] == 'user', orElse: () => {});
       if (lastUserMsg.isNotEmpty && question.length < 15) {
-         // If current question is short, append context from previous question
          searchQuery = "${lastUserMsg['content']} $question";
       }
     }
 
-    // 2. Retrieve relevant context (Boosted count)
+    // 2. Retrieve relevant context
     final context = _retrieveContext(searchQuery);
     print("🔍 Search Query: $searchQuery");
-    print("📄 Retrieved Context Loop:\n$context\n----------------");
 
-    // 3. Construct Prompt (History + Context)
+    // 3. Construct Prompt
     final historyText = history.map((m) => "${m['role'] == 'user' ? 'User' : 'Assistant'}: ${m['content']}").join("\n");
     
     final prompt = """
@@ -103,26 +101,28 @@ User: $question
 Assistant:
 """;
 
-    // 3. Call Ollama API
-    final url = Uri.parse('http://localhost:11434/api/generate');
+    // 4. Determine Host
+    String baseUrl = 'http://localhost:11434';
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      baseUrl = 'http://10.0.2.2:11434';
+    }
+
+    final url = Uri.parse('$baseUrl/api/generate');
     final request = http.Request('POST', url);
     request.body = jsonEncode({
       "model": "gemma:2b",
       "prompt": prompt,
-      "stream": true, // We want streaming response
+      "stream": true,
     });
 
+    bool connected = false;
     try {
-      final streamedResponse = await request.send();
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 5));
 
       if (streamedResponse.statusCode == 200) {
+        connected = true;
         await for (var chunk in streamedResponse.stream.transform(utf8.decoder)) {
-          // Ollama sends JSON objects in the stream
-          // e.g. {"model":"gemma:2b","created_at":"...","response":"Hello","done":false}
-          
-          // Chunk might contain multiple JSON objects
           try {
-             // Split by newlines in case multiple JSONs are in one chunk
              final lines = chunk.split('\n').where((l) => l.trim().isNotEmpty);
              for (var line in lines) {
                final json = jsonDecode(line);
@@ -131,14 +131,33 @@ Assistant:
                }
              }
           } catch (e) {
-            // Ignore partial JSON parsing errors during stream
+            // Ignore partial
           }
         }
       } else {
-        yield "Error: Ollama API returned ${streamedResponse.statusCode}. Is Ollama running?";
+        throw Exception("Ollama API returned ${streamedResponse.statusCode}");
       }
     } catch (e) {
-      yield "Error connecting to Ollama: $e. Please ensure 'ollama serve' is running.";
+      // 5. Fallback Mock Mode (Simulated AI)
+      if (!connected) {
+        print("⚠️ Connection failed ($e). Using Fallback Mock Mode.");
+        yield "⚠️ *Note: Could not connect to local AI. Simulating response based on brochure data...*\n\n";
+        
+        // Simple heuristic fallback
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (context.isEmpty) {
+          yield "I couldn't find specific information about that in the brochure.";
+        } else {
+             yield "Based on the brochure:\n\n";
+             // Stream the context chunks slowly to simulate AI
+             final chunks = context.split('\n\n').take(2); // Take top 2 chunks
+             for (var chunk in chunks) {
+               yield "$chunk\n\n";
+               await Future.delayed(const Duration(milliseconds: 300));
+             }
+        }
+      }
     }
   }
 

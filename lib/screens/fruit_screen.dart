@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
+import '../services/ml_service.dart';
 
 class FruitScreen extends StatefulWidget {
   const FruitScreen({super.key});
@@ -18,41 +18,20 @@ class _FruitScreenState extends State<FruitScreen> {
   Uint8List? _webImage;
   List<MapEntry<String, double>> _predictions = [];
   bool _modelLoaded = false;
-  late Interpreter _interpreter;
-  List<String> _labels = [];
+  late MLService _mlService;
   final ImagePicker _picker = ImagePicker();
-
-  // Adjust these according to your model's input size
-  // Teachable Machine standard is usually 224x224
-  final int inputHeight = 224;
-  final int inputWidth = 224;
 
   @override
   void initState() {
     super.initState();
+    _mlService = MLService.create();
     _loadModel();
   }
 
   Future<void> _loadModel() async {
-    try {
-      // Fixed: Added 'assets/' prefix to the model path
-      _interpreter = await Interpreter.fromAsset('assets/models/fruit_model.tflite');
-      
-      
-      if (!mounted) return;
-      final rawLabels = await DefaultAssetBundle.of(context).loadString('assets/models/labels.txt');
-      _labels = rawLabels
-          .split('\n')
-          .where((l) => l.trim().isNotEmpty)
-          .map((l) => l.replaceAll(RegExp(r'^\d+\s+'), '').trim()) // Remove leading numbers
-          .toList();
-      
-      setState(() => _modelLoaded = true);
-      debugPrint("✅ Model loaded successfully");
-      debugPrint("✅ Loaded ${_labels.length} labels: $_labels");
-    } catch (e) {
-      debugPrint("❌ Failed to load model: $e");
-      setState(() => _modelLoaded = false);
+    await _mlService.loadModel();
+    if(mounted) {
+        setState(() => _modelLoaded = true);
     }
   }
 
@@ -90,48 +69,16 @@ class _FruitScreenState extends State<FruitScreen> {
 
     if (image == null) return;
 
-    // Resize to model input
-    final resized = img.copyResize(image, width: inputWidth, height: inputHeight);
-
-    // Prepare input tensor
-    final input = Float32List(inputHeight * inputWidth * 3);
-    int idx = 0;
-
-    for (int y = 0; y < inputHeight; y++) {
-      for (int x = 0; x < inputWidth; x++) {
-        final img.Pixel pixel = resized.getPixel(x, y);
-        final int r = pixel.r.toInt();
-        final int g = pixel.g.toInt();
-        final int b = pixel.b.toInt();
-        
-        // Normalization [0, 1] RGB
-        input[idx++] = r / 255.0; // Red
-        input[idx++] = g / 255.0; // Green
-        input[idx++] = b / 255.0; // Blue
-      }
-    }
-
-    // Reshape input
-    final inputBuffer = input.reshape([1, inputHeight, inputWidth, 3]);
-
-    // Prepare output
-    final outputBuffer = List.filled(_labels.length, 0.0).reshape([1, _labels.length]);
-
-    // Run inference
-    _interpreter.run(inputBuffer, outputBuffer);
-
-    // Find top 3 probabilities
-    var map = Map<String, double>.fromIterables(_labels, outputBuffer[0]);
-    var sortedEntries = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final predictions = await _mlService.classifyImage(image: image);
     
     setState(() {
-      _predictions = sortedEntries.take(3).toList();
+      _predictions = predictions;
     });
   }
 
   @override
   void dispose() {
-    _interpreter.close();
+    _mlService.dispose();
     super.dispose();
   }
 
@@ -187,6 +134,15 @@ class _FruitScreenState extends State<FruitScreen> {
                 "⚠️ Model not loaded",
                 style: TextStyle(color: Colors.red, fontSize: 16),
               ),
+
+             if (kIsWeb)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: Text(
+                  "ML classification is not supported on Web",
+                  style: TextStyle(color: Colors.orange, fontStyle: FontStyle.italic),
+                ),
+              ),
             
             const SizedBox(height: 10),
             
@@ -232,45 +188,11 @@ class _FruitScreenState extends State<FruitScreen> {
               );
             }).toList(),
             
-            if (_predictions.isEmpty && _imageFile != null)
+            if (_predictions.isEmpty && _imageFile != null && !kIsWeb)
                const CircularProgressIndicator(),
           ],
         ),
       ),
     );
-  }
-}
-
-// Extension methods for reshaping
-extension Float32ListReshape on Float32List {
-  List<List<List<List<double>>>> reshape(List<int> shape) {
-    final List<List<List<List<double>>>> result =
-        List.generate(shape[0], (_) => List.generate(shape[1], (_) => List.generate(shape[2], (_) => List.filled(shape[3], 0.0))));
-    
-    int idx = 0;
-    for (int b = 0; b < shape[0]; b++) {
-      for (int h = 0; h < shape[1]; h++) {
-        for (int w = 0; w < shape[2]; w++) {
-          for (int c = 0; c < shape[3]; c++) {
-            result[b][h][w][c] = this[idx++];
-          }
-        }
-      }
-    }
-    return result;
-  }
-}
-
-extension ListDoubleReshape on List<double> {
-  List<List<double>> reshape(List<int> shape) {
-    final List<List<double>> result = List.generate(shape[0], (_) => List.filled(shape[1], 0.0));
-    
-    int idx = 0;
-    for (int i = 0; i < shape[0]; i++) {
-      for (int j = 0; j < shape[1]; j++) {
-        result[i][j] = this[idx++];
-      }
-    }
-    return result;
   }
 }

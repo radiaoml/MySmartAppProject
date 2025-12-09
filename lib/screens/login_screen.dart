@@ -38,105 +38,142 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    // Access theme data
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        centerTitle: true,
-        backgroundColor: Colors.teal,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Form(
-          key: _formKey, // Associating the form with the key
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Image.asset('assets/images/emsi.png', height: 100),
-              const Text(
-                'Welcome Back!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
-              ),
-              const SizedBox(height: 30),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+      // Extend body behind app bar if we wanted transparent app bar, 
+      // but here we just use the Container as full background
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF00695C), Color(0xFF00BFA5)], // Hardcoded or use AppTheme if imported
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo or Icon
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                       // Use icon if image asset fails or looking for cleaner look, 
+                       // but keeping image as requested by user context usually
+                        child: Image.asset('assets/images/emsi.png', height: 80), 
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Welcome Back',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sign in to continue',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Email
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Email Address',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: _validateEmail,
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Password
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_passwordVisible,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _passwordVisible = !_passwordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: _validatePassword,
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              Navigator.pushNamed(
+                                context, 
+                                "/home",
+                                arguments: {'email': _emailController.text},
+                              );
+                            }
+                          },
+                          child: const Text('LOGIN'),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Register Link
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, "/register");
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            text: "Don't have an account? ",
+                            style: theme.textTheme.bodyMedium,
+                            children: [
+                              TextSpan(
+                                text: 'Register',
+                                style: TextStyle(
+                                  color: theme.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  prefixIcon: const Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail, // Email validation logic
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: !_passwordVisible, // Toggle visibility
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _passwordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _passwordVisible = !_passwordVisible; // Toggle state
-                      });
-                    },
-                  ),
-                ),
-                validator: _validatePassword, // Password validation logic
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // If the form is valid, execute the login logic
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Processing Login')),
-                    );
-                    // Add your login logic here
-                    Navigator.pushNamed(context, "/home");
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  backgroundColor: Colors.teal,
-                ),
-                child: const Text(
-                  'Login',
-                  style: TextStyle(fontSize: 18),
                 ),
               ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  // Navigate to the Register page
-                  Navigator.pushNamed(context, "/register");
-                },
-                child: const Text(
-                  'Don\'t have an account? Register here',
-                  style: TextStyle(color: Colors.teal),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
