@@ -215,7 +215,7 @@ class _FruitScreenState extends State<FruitScreen> {
                     BoxShadow(
                       color: Colors.black26,
                       blurRadius: 4,
-                      offset: const Offset(2, 2),
+                      offset: Offset(2, 2),
                     ),
                   ],
                 ),
