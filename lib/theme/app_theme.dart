@@ -27,7 +27,6 @@ class AppTheme {
         secondary: secondaryColor,
         surface: surfaceColor,
         error: errorColor,
-        background: backgroundColor,
       ),
       
       // AppBar Theme
@@ -90,14 +89,14 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: const CardThemeData(
         color: Colors.white,
         elevation: 4,
         shadowColor: Colors.black12,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
-        margin: const EdgeInsets.all(8),
+        margin: EdgeInsets.all(8),
       ),
     );
   }

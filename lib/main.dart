@@ -1,5 +1,16 @@
-  // but MLService is initialized on demand.
+import 'package:flutter/material.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/fruit_screen.dart';
+import 'screens/chat_screen.dart';
+import 'theme/app_theme.dart';
+
+void main() {
+  // Initialize Flutter bindings
+  WidgetsFlutterBinding.ensureInitialized();
   
+  // MLService is initialized on demand when needed
   runApp(const MyApp());
 }
 

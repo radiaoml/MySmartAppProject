@@ -38,8 +38,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-  @override
-  Widget build(BuildContext context) {
     // Access theme data
     final theme = Theme.of(context);
     
